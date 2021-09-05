@@ -1,0 +1,6 @@
+(library
+  (name dsalgo)
+  (modules slink rbtree)
+  (libraries core)
+  (wrapped false)
+  (flags :standard -w -3-27-32-58))

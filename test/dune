@@ -1,0 +1,14 @@
+(tests
+ (names test_slink test_rbtree)
+ (flags :standard -w -3-27-32-58)
+ (libraries dsalgo alcotest qcheck qcheck-alcotest))
+
+(alias
+ (name runtest)
+ (deps test_slink.exe)
+ (action (run ./test_slink.exe)))
+
+(alias
+ (name runtest)
+ (deps test_rbtree.exe)
+ (action (run ./test_rbtree.exe)))
