@@ -302,7 +302,6 @@ let remove tree elem = match find tree elem with
     let node = remove_node nd in
     (* (if (is_root node) && (left node |> is_leaf) && (right node |> is_leaf) then
      *   tree := Leaf); *)
-    if is_leaf node then tree := Leaf
-    else if is_root node && phys_equal !tree node |> not then
+    if (is_leaf node || is_root node) && phys_equal !tree node |> not then
       tree := node
   | _ -> ()
