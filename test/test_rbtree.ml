@@ -23,7 +23,7 @@ let from_list list =
 let to_list tree =
   let rec to_list' = function
     | Node node ->
-      List.append (node.value :: to_list' !(node.left)) (to_list' !(node.right))
+      List.append (node.value :: to_list' node.left) (to_list' node.right)
     | _ -> []
 in
 to_list' !tree
@@ -31,7 +31,7 @@ to_list' !tree
 let to_list_sorted tree =
   let rec to_list' = function
     | Node node ->
-      List.append (to_list' !(node.left)) (node.value :: to_list' !(node.right))
+      List.append (to_list' node.left) (node.value :: to_list' node.right)
     | _ -> []
   in
 to_list' !tree

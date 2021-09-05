@@ -6,9 +6,9 @@ type 'a node =
   | Node of {
       mutable value: 'a;
       mutable color: color;
-      left: 'a node ref;
-      right: 'a node ref;
-      parent: 'a node ref;
+      mutable left: 'a node;
+      mutable right: 'a node;
+      mutable parent: 'a node;
     }
   | Leaf
 
@@ -38,11 +38,11 @@ let is_leaf = function
   | _ -> false
 
 let left = function
-  | Node n -> !(n.left)
+  | Node n -> n.left
   | _ -> invalid_arg "leaf has no child"
 
 let right = function
-  | Node n -> !(n.right)
+  | Node n -> n.right
   | _ -> invalid_arg "leaf has no child"
 
 let value = function
@@ -56,25 +56,25 @@ let child_node node = function
 
 let set_child node child branch = match node with
   | Node nd -> (match branch with
-    | Left -> nd.left := child
-    | Right -> nd.right := child
+    | Left -> nd.left <- child
+    | Right -> nd.right <- child
     | Stop -> invalid_arg "invalid direction");
     (match child with
-    | Node nd' -> nd'.parent := node
+    | Node nd' -> nd'.parent <- node
     | Leaf -> ());
   | Leaf -> invalid_arg "leaf has no child"
 
 let parent = function
-  | Node n -> !(n.parent)
+  | Node n -> n.parent
   | Leaf -> invalid_arg "leaf has no parent"
 
 let set_parent ?(branch=Stop) node p = match node with
     | Node n ->
-      n.parent := p;
+      n.parent <- p;
       (match p with
        | Node nd -> (match branch with
-           | Left -> nd.left := node
-           | Right -> nd.right := node
+           | Left -> nd.left <- node
+           | Right -> nd.right <- node
            | Stop -> ());
        | Leaf -> ());
     | Leaf -> invalid_arg "leaf has no parent"
@@ -147,8 +147,8 @@ let tranverse {contents=root} f =
     match node with
     | Node n ->
       (match f(n.value) with
-      | Left -> tranverse' !(n.left) node Left
-      | Right -> tranverse' !(n.right) node Right
+      | Left -> tranverse' n.left node Left
+      | Right -> tranverse' n.right node Right
       | Stop -> node, Stop)
     | Leaf -> parent, direction in
   tranverse' root root Stop
@@ -160,12 +160,12 @@ let find tree value =
 
 let size tree =
   let rec size' node = match node with
-    | Node n -> size' !(n.left) + size' !(n.right) + 1
+    | Node n -> size' n.left + size' n.right + 1
     | Leaf -> 0 in
   size' !tree
 
 let make_node ?(parent=Leaf) ?(color=Red) value =
-  Node { value; color; left=ref Leaf; right=ref Leaf; parent=ref parent}
+  Node { value; color; left=Leaf; right=Leaf; parent=parent}
 
 let rec adjust_insert' node =
   let p = parent node in
@@ -229,8 +229,8 @@ let insert tree elem = match find tree elem with
   | (Node n) as node, d ->
     let newnode = make_node ~parent:node ~color:Red elem in
     (match d with
-    | Left -> n.left := newnode
-    | _ -> n.right := newnode);
+    | Left -> n.left <- newnode
+    | _ -> n.right <- newnode);
     let node' = adjust_insert newnode node in
     if is_root node' && not (phys_equal !tree node') then
       tree := node';
