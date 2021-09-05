@@ -292,7 +292,7 @@ let rec remove_node node =
     set_color child Black;
     (* if not (is_leaf p) then
      *   get_branch node p |> set_child p child; *)
-    p
+    child
   | Leaf, Leaf -> let p = parent node in
     if is_leaf p then p
     else match color node with
@@ -311,5 +311,6 @@ let remove tree elem = match find tree elem with
     (* (if (is_root node) && (left node |> is_leaf) && (right node |> is_leaf) then
      *   tree := Leaf); *)
     if (is_leaf node || is_root node) && phys_equal !tree node |> not then
-      tree := node
-  | _ -> ()
+      tree := node;
+    true
+  | _ -> false

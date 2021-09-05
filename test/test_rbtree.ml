@@ -65,10 +65,22 @@ let check_remove = let open! QCheck in
        (* let list' = unique_list list in *)
        (* List.iter list' ~f:(Printf.printf "%d, "); *)
        (* Printf.printf "\n("; *)
+       let n = List.dedup_and_sort list ~compare |> List.length in
+       let m = ref 0 in
        let tree = from_list list in
-       List.iter (shuffle list) ~f:(fun e -> remove tree e);
+       let shuffled = shuffle list in
+       (* print_list list;
+        * print_list shuffled; *)
+       List.iter shuffled ~f:(fun e ->
+           if remove tree e then (
+             m := !m + 1;
+             (* printf "%d, %d\n" (size tree) (n - !m); *)
+             assert (size tree = n - !m);
+           )
+         );
+       true
        (* Printf.printf ")\n"; *)
-       size tree = 0
+       (* size tree = 0 *)
     )
 
 let () =
