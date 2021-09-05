@@ -16,11 +16,12 @@ type 'a t = 'a node ref
 
 type direction = Left | Right | Stop
 
-type branch = L | R
+(* type branch = L | R *)
 
 let flip = function
-  | L -> R
-  | R -> L
+  | Left -> Right
+  | Right -> Left
+  | Stop -> Stop
 
 let color_repr = function
   | Red -> "red"
@@ -44,34 +45,39 @@ let right = function
   | Node n -> !(n.right)
   | _ -> invalid_arg "leaf has no child"
 
-let set_left node left = match node with
-  | Node n -> n.left := left
-  | Leaf -> invalid_arg "leaf has no child"
-
-let set_right node right = match node with
-  | Node n -> n.right := right
-  | Leaf -> invalid_arg "leaf has no child"
-
 let value = function
   | Node n -> n.value
   | Leaf -> -1
 
 let child_node node = function
-  | L -> left node
-  | R -> right node
+  | Left -> left node
+  | Right -> right node
+  | Stop -> invalid_arg "invalid direction"
 
-let set_child node child = function
-  | L -> set_left node child
-  | R -> set_right node child
+let set_child node child branch = match node with
+  | Node nd -> (match branch with
+    | Left -> nd.left := child
+    | Right -> nd.right := child
+    | Stop -> invalid_arg "invalid direction");
+    (match child with
+    | Node nd' -> nd'.parent := node
+    | Leaf -> ());
+  | Leaf -> invalid_arg "leaf has no child"
 
 let parent = function
   | Node n -> !(n.parent)
   | Leaf -> invalid_arg "leaf has no parent"
 
-let set_parent node p = (match node with
-  | Node n -> n.parent := p
-  | Leaf -> invalid_arg "leaf has no parent");
-  ()
+let set_parent ?(branch=Stop) node p = match node with
+    | Node n ->
+      n.parent := p;
+      (match p with
+       | Node nd -> (match branch with
+           | Left -> nd.left := node
+           | Right -> nd.right := node
+           | Stop -> ());
+       | Leaf -> ());
+    | Leaf -> invalid_arg "leaf has no parent"
 
 let is_root node =
   phys_equal (parent node) Leaf
@@ -81,8 +87,10 @@ let is_left node p = match node with
   | Leaf -> invalid_arg "should not call is_left on leaf"
 
 let get_branch node parent =
-  if is_left node parent then L
-  else R
+  try
+    if is_left node parent then Left
+    else Right
+  with invalid_arg -> Stop
 
 let sibling node =
   let p = parent node in
@@ -126,12 +134,12 @@ let rotate node child =
   let grandson = child_node child opposite in
   set_child node grandson branch;
   set_child child node opposite;
-  if is_leaf grandson |> not then
-    set_parent grandson node;
-  set_parent node child;
-  set_parent child p;
-  (if not (is_leaf p) then
-    get_branch node p |> set_child p child);
+  (* if is_leaf grandson |> not then
+   *   set_parent grandson node;
+   * set_parent node child; *)
+  set_parent child p ~branch:(get_branch node p);
+  (* (if not (is_leaf p) then
+   *   get_branch node p |> set_child p child); *)
   child
 
 let tranverse {contents=root} f =
@@ -214,7 +222,7 @@ let insert tree elem = match find tree elem with
   | Leaf, Stop ->
     (* empty tree *)
     let root = make_node ~color:Black elem in
-    set_parent root Leaf;
+    set_parent root Leaf ~branch:Stop;
     tree := root;
     ()
   | Node n, Stop -> ()
@@ -233,10 +241,10 @@ let nearest_child node =
     match child_node child direction with
     | Leaf -> child
     | _ as child' -> nearest child' direction in
-  match child_node node L with
-  | (Node _) as node' -> nearest node' R
-  | Leaf -> match child_node node R with
-    | (Node _) as node' -> nearest node' L
+  match child_node node Left with
+  | (Node _) as node' -> nearest node' Right
+  | Leaf -> match child_node node Right with
+    | (Node _) as node' -> nearest node' Left
     | Leaf -> Leaf
 
 let rec remove_black_end p b top =
@@ -280,10 +288,10 @@ let rec remove_node node =
     remove_node nearest
   | ((Node _) as child), Leaf | Leaf, ((Node _) as child)  ->
     let p = parent node in
-    set_parent child p;
+    set_parent child p ~branch:(get_branch node p);
     set_color child Black;
-    if not (is_leaf p) then
-      get_branch node p |> set_child p child;
+    (* if not (is_leaf p) then
+     *   get_branch node p |> set_child p child; *)
     p
   | Leaf, Leaf -> let p = parent node in
     if is_leaf p then p
